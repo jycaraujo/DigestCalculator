@@ -14,7 +14,6 @@ public class DigestCalculator {
 
     private String digestListFilePath;
     private String digestType;
-    private String digest_hex;
     private List<Archive> files;
 
     public final List<FileLine> digestsFileList = new ArrayList<FileLine>();
@@ -39,7 +38,7 @@ public class DigestCalculator {
     	this.digestType = digestType;
     }
     
-    public void run() {
+    public void run() throws Exception{
     	 loadDigestListFile();
          calculateDigests();
          compareDigests();
@@ -48,7 +47,9 @@ public class DigestCalculator {
     }
     
     private void printReport(){
-    	
+    	for (Archive file : files) {
+    		System.out.println(file.FileName+" "+this.digestType+" "+file.CalculatedDigestHEX+" "+file.Status);
+    	}
     }
 
     private void compareDigests() {
@@ -184,6 +185,7 @@ public class DigestCalculator {
     		 }
 			 file.CalculatedDigest = digest.digest();
 			 file.CalculatedDigestHEX = ByteToString(file.CalculatedDigest);
+			 inputStream.close();
     	}
     }
 
@@ -237,3 +239,4 @@ public class DigestCalculator {
     public String getDigestType() {
         return digestType;
     }
+}
