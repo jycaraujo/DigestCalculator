@@ -2,11 +2,13 @@ import java.io.*;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.function.Consumer;
 
 
@@ -16,8 +18,8 @@ public class DigestCalculator {
     private String digestType;
     private List<Archive> files = new ArrayList<Archive>();
 
-    public final List<FileLine> digestsFileList = new ArrayList<FileLine>();
-    public final HashMap<String, FileLine> digestsFileHashMap = new HashMap<String,FileLine>();
+    private final List<FileLine> digestsFileList = new ArrayList<FileLine>();
+    private final HashMap<String, FileLine> digestsFileHashMap = new HashMap<String,FileLine>();
 
     public static void main(String[] args) throws Exception {
         if (args.length < 3) {
@@ -33,9 +35,7 @@ public class DigestCalculator {
         DigestCalculator digestCalculator = new DigestCalculator(args[0], args[1]);
         
         digestCalculator.GetArchives(args);
-        System.out.println("# gonna run");
         digestCalculator.run();
-        System.out.println("# end");
     }
     
     public DigestCalculator(String digestType, String digestListFilePath) {
@@ -45,13 +45,9 @@ public class DigestCalculator {
     
     public void run() throws Exception{
     	 loadDigestListFile();
-    	 System.out.println("# digest file loaded");
          calculateDigests();
-         System.out.println("# digests calculated");
          compareDigests();
-         System.out.println("# statuses calculated");
          updateDigestFile();
-         System.out.println("# file updated");
          printReport();
     }
     
@@ -66,7 +62,7 @@ public class DigestCalculator {
             for (Archive aux : files) {
                 /* verificando se o digest calculado colide com o digest de outro arquivo de
                 nome diferente encontrado nos arquivos fornecidos na linha de comando */
-                if (!aux.FileName.endsWith(file.FileName) && aux.CalculatedDigestHEX.equals(file.CalculatedDigestHEX)) {
+                if (!aux.FileName.equals(file.FileName) && aux.CalculatedDigestHEX.equals(file.CalculatedDigestHEX)) {
                     file.Status = "COLISION";
                     break;
                 }
@@ -94,11 +90,6 @@ public class DigestCalculator {
                     }
                 } else {
                     // digest 1
-//                	System.out.println(fileLine.DigestType1);
-//                	System.out.println(fileLine.DigestType2);
-//                	System.out.println(digestType);
-//                	System.out.println(fileLine.DigestHEX1);
-//                	System.out.println(file.CalculatedDigestHEX);
                     if (fileLine.DigestType1.equals(digestType)) {
                         if (fileLine.DigestHEX1.equals(file.CalculatedDigestHEX))
                             file.Status = "OK";
@@ -127,6 +118,11 @@ public class DigestCalculator {
         Consumer<String> lineConsumer = new Consumer<String>(){
             public void accept(String line) {
                 String[] parts = line.split(" ");
+                if(parts.length < 3 || parts.length>5) {
+                	System.err.println("Arquivo de lista de digests em formato desconhecido!");
+                	System.err.println("Verifique por linhas em branco.");
+                	System.exit(-1);
+                }
                 FileLine fileLine = new FileLine();
                 fileLine.lineNumber = digestsFileList.size();
                 fileLine.Name = parts[0];
@@ -164,20 +160,25 @@ public class DigestCalculator {
             newLine.Name = filename;
             newLine.DigestType1 = digestType;
             newLine.DigestHEX1 = digestHEX;
-            System.out.println(">>>>>>>> adding new line: "+newLine.DigestHEX1);
             digestsFileList.add(newLine);
         }
     }
-    private void updateDigestList()throws IOException{
+    private boolean updateDigestList()throws IOException{
+    	boolean haveFilesBeenAdded = false;
         for (Archive file : files) {
             if(file.Status.equals("NOT FOUND")){
+            	haveFilesBeenAdded = true;
                 addDigestToDigestListFile(file.FileName, digestType, file.CalculatedDigestHEX);
             }
         }
+        return haveFilesBeenAdded;
     }
     
     private void updateDigestFile() throws IOException{
-        updateDigestList();
+        boolean fileNeedsUpdate = updateDigestList();
+        
+        if(!fileNeedsUpdate){ return; }
+        
         Path path = Paths.get(digestListFilePath);
         try (BufferedWriter writer = Files.newBufferedWriter(path)) {
             for (FileLine fileLine : digestsFileList) {
@@ -200,25 +201,30 @@ public class DigestCalculator {
     		 }
 			 file.CalculatedDigest = digest.digest();
 			 file.CalculatedDigestHEX = ByteToString(file.CalculatedDigest);
-			 System.out.println(">>>>>> calculated: "+file.CalculatedDigestHEX);
 			 inputStream.close();
     	}
     }
 
     public void GetArchives(String[] args) {
+    	Set<String> fileNames = new HashSet<String>();
         for (int i = 2; i < args.length; i++) {
             Archive file = new Archive();
             file.Path = args[i];
-            files.add(file);
-        }
-
-        for (Archive file : files) {
+            
             File f = new File(file.Path);
             file.FileName = f.getName();
             if (!f.exists() || f.isDirectory()) {
                 System.err.println("The file \"" + file.Path + "\" does not exist.");
                 System.exit(1);
             }
+            
+            if(fileNames.contains(file.FileName)) {
+            	System.err.println("More than one file with the name '"+file.FileName+"' provided as input.");
+                System.exit(1);
+            }
+            
+            files.add(file);
+            fileNames.add(file.FileName);
         }
 
         File f = new File(digestListFilePath);
