@@ -188,10 +188,10 @@ public class DigestCalculator {
     }
 
     private void calculateDigests() throws Exception{
+    	MessageDigest digest = MessageDigest.getInstance(digestType);
     	for (Archive file : files) {
-    		 MessageDigest digest = MessageDigest.getInstance(digestType);
     		 digest.reset();
-    		 FileInputStream inputStream = new FileInputStream(digestListFilePath);
+    		 FileInputStream inputStream = new FileInputStream(file.Path);
     		 byte[] bytes = new byte[2048];
 			 int numBytes;
 			 
