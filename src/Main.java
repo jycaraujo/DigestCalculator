@@ -6,8 +6,12 @@ public class Main {
         if (!digestCalculator.ValidateArgs(args))
             System.exit(1);
         digestCalculator.setDigestType(args[0]);
-        digestCalculator.setDigestListFilePath(args[2]);
+        digestCalculator.setDigestListFilePath(args[1]);
         digestCalculator.GetArchives(args);
+        digestCalculator.loadDigestListFile();
+        digestCalculator.calculateDigests();
+        digestCalculator.compareDigests();
+        digestCalculator.updateDigestFile();
 
         // calculate
         // load

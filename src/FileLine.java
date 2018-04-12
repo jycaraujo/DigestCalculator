@@ -1,5 +1,5 @@
 public class FileLine {
-
+    public int lineNumber;
     public String Name;
     public String DigestType1;
     public String DigestHEX1;
@@ -8,10 +8,13 @@ public class FileLine {
 
     public FileLine()
     {
-        Name 		 = "";
-        DigestType1  = "";
-        DigestType2  = "";
-        DigestHEX1   = "";
-        DigestHEX2   = "";
+    }
+    
+    public String toString(){
+        String text = Name + " " + DigestType1 + " " + DigestHEX1;
+        if (DigestType2 != null) {
+            text = text +  " " + DigestType2 + " " + DigestHEX2;
+        }
+        return text;
     }
 }

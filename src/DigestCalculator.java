@@ -2,6 +2,13 @@ import java.io.*;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.stream.Stream;
+import java.util.HashMap;
+import java.util.function.Consumer;
+
 
 public class DigestCalculator {
 
@@ -10,12 +17,13 @@ public class DigestCalculator {
     private String digest_hex;
     private List<Archive> files;
 
-    public List<FileLine> digestsFileList;
+    public final List<FileLine> digestsFileList = new ArrayList<FileLine>();
+    public final HashMap<String, FileLine> digestsFileHashMap = new HashMap<String,FileLine>();
 
     public DigestCalculator() {
     }
 
-    public void CompareDigests() {
+    public void compareDigests() {
         for (Archive file : files) {
             for (Archive aux : files) {
                 /* verificando se o digest calculado colide com o digest de outro arquivo de
@@ -73,7 +81,68 @@ public class DigestCalculator {
 
     }
 
-    public void LoadDigestListFile() {
+    public void loadDigestListFile() throws IOException{
+        Path path=Paths.get(digestListFilePath);  
+        Consumer<String> lineConsumer = new Consumer<String>(){
+            public void accept(String line) {
+                String[] parts = line.split(" ");
+                FileLine fileLine = new FileLine();
+                fileLine.lineNumber = digestsFileList.size();
+                fileLine.Name = parts[0];
+                fileLine.DigestType1 = parts[1];
+                fileLine.DigestHEX1 = parts[2];
+                if(parts.length > 3){
+                    fileLine.DigestType2 = parts[3];    
+                    fileLine.DigestHEX2 = parts[4];
+                }
+                digestsFileHashMap.put(parts[0], fileLine);
+                digestsFileList.add(fileLine);
+            }
+        };
+        
+        try(Stream<String> lines = Files.lines(path)){
+            lines.forEach(lineConsumer);
+            lines.close();
+        }
+    }
+    
+    private boolean listFileHasFilename(String filename){
+        return digestsFileHashMap.containsKey(filename);
+    }
+    
+    private void addDigestToDigestListFile (String filename, String digestType, String digestHEX)throws IOException {
+        if (listFileHasFilename(filename)){
+            // add second hash
+            FileLine line = digestsFileHashMap.get(filename);
+            line.DigestType2 = digestType;
+            line.DigestHEX2 = digestHEX;
+        }
+        else {
+            // add new line
+            FileLine newLine = new FileLine();
+            newLine.Name = filename;
+            newLine.DigestType1 = digestType;
+            newLine.DigestHEX1 = digestHEX;
+            digestsFileList.add(newLine);
+        }
+    }
+    private void updateDigestList()throws IOException{
+        for (Archive file : files) {
+            if(file.Status.equals("NOT FOUND")){
+                addDigestToDigestListFile(file.FileName, digestType, file.CalculatedDigestHEX);
+            }
+        }
+    }
+    
+    public void updateDigestFile() throws IOException{
+        updateDigestList();
+        Path path = Paths.get(digestListFilePath);
+        try (BufferedWriter writer = Files.newBufferedWriter(path)) {
+            for (FileLine fileLine : digestsFileList) {
+                writer.write(fileLine.toString());
+                writer.newLine();
+            }
+        }
     }
 
     public static String ByteToString(byte[] info) {
@@ -87,13 +156,13 @@ public class DigestCalculator {
         return buf.toString();
     }
 
-    public void CalculateDigestFiles() {
+    public void calculateDigests() {
     }
 
     public void GetArchives(String[] args) {
         files = new ArrayList<Archive>();
 
-        for (int i = 1; i < args.length - 1; i++) {
+        for (int i = 2; i < args.length - 1; i++) {
             Archive file = new Archive();
             file.Path = args[i];
             files.add(file);
@@ -130,12 +199,11 @@ public class DigestCalculator {
         }
 
         if (args.length < 3) {
-            System.err.println("\nFormato: DigestCalculator <SP> Tipo_Digest <SP>Caminho_Arq1... <SP>Caminho_ArqN<SP>Caminho_ArqListaDigest  ");
+            System.err.println("\nFormato: DigestCalculator Tipo_Digest Caminho_ArqListaDigest Caminho_Arq1 ... Caminho_ArqN");
             System.exit(1);
         } else if (!args[0].equals("MD5") && !args[0].equals("SHA1")) {
             System.err.println("\nPrimeiro argumento invalido!!");
-            System.err
-                    .println("\nO primeiro argumento deve ser o tipo do digest (MD5 ou SHA1)");
+            System.err.println("\nO primeiro argumento deve ser o tipo do digest (MD5 ou SHA1)");
             return false;
         }
         return true;
