@@ -156,7 +156,19 @@ public class DigestCalculator {
         return buf.toString();
     }
 
-    public void calculateDigests() {
+    public void calculateDigests() throws Exception{
+    	for (Archive file : files) {
+    		 MessageDigest digest = MessageDigest.getInstance(digestType);
+    		 FileInputStream inputStream = new FileInputStream(digestListFilePath);
+    		 byte[] bytes = new byte[2048];
+			 int numBytes;
+			 
+		     while ((numBytes = inputStream.read(bytes)) != -1) {
+		    	 digest.update(bytes, 0, numBytes);
+    		 }
+			 file.CalculatedDigest = digest.digest();
+			 file.CalculatedDigestHEX = ByteToString(file.CalculatedDigest)
+    	}
     }
 
     public void GetArchives(String[] args) {
