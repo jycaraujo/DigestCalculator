@@ -21,6 +21,7 @@ public class DigestCalculator {
 
     public static void main(String[] args) throws Exception {
         if (args.length < 3) {
+        	System.err.println("\nNúmero insuficiente de argumentos:");
             System.err.println("\nFormato: DigestCalculator Tipo_Digest Caminho_ArqListaDigest Caminho_Arq1 ... Caminho_ArqN");
             System.exit(1);
         } else if (!args[0].equals("MD5") && !args[0].equals("SHA1")) {
@@ -30,7 +31,9 @@ public class DigestCalculator {
         }
 
         DigestCalculator digestCalculator = new DigestCalculator(args[0], args[1]);
+        
         digestCalculator.GetArchives(args);
+        digestCalculator.run();
     }
     
     public DigestCalculator(String digestType, String digestListFilePath) {
@@ -48,7 +51,7 @@ public class DigestCalculator {
     
     private void printReport(){
     	for (Archive file : files) {
-    		System.out.println(file.FileName+" "+this.digestType+" "+file.CalculatedDigestHEX+" "+file.Status);
+    		System.out.println(file.FileName+" "+this.digestType+" "+file.CalculatedDigestHEX+" ("+file.Status+")");
     	}
     }
 
