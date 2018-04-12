@@ -14,7 +14,7 @@ public class DigestCalculator {
 
     private String digestListFilePath;
     private String digestType;
-    private List<Archive> files;
+    private List<Archive> files = new ArrayList<Archive>();
 
     public final List<FileLine> digestsFileList = new ArrayList<FileLine>();
     public final HashMap<String, FileLine> digestsFileHashMap = new HashMap<String,FileLine>();
@@ -29,11 +29,13 @@ public class DigestCalculator {
             System.err.println("\nO primeiro argumento deve ser o tipo do digest (MD5 ou SHA1)");
             System.exit(1);
         }
-
+       
         DigestCalculator digestCalculator = new DigestCalculator(args[0], args[1]);
         
         digestCalculator.GetArchives(args);
+        System.out.println("# gonna run");
         digestCalculator.run();
+        System.out.println("# end");
     }
     
     public DigestCalculator(String digestType, String digestListFilePath) {
@@ -43,9 +45,13 @@ public class DigestCalculator {
     
     public void run() throws Exception{
     	 loadDigestListFile();
+    	 System.out.println("# digest file loaded");
          calculateDigests();
+         System.out.println("# digests calculated");
          compareDigests();
+         System.out.println("# statuses calculated");
          updateDigestFile();
+         System.out.println("# file updated");
          printReport();
     }
     
@@ -88,6 +94,11 @@ public class DigestCalculator {
                     }
                 } else {
                     // digest 1
+//                	System.out.println(fileLine.DigestType1);
+//                	System.out.println(fileLine.DigestType2);
+//                	System.out.println(digestType);
+//                	System.out.println(fileLine.DigestHEX1);
+//                	System.out.println(file.CalculatedDigestHEX);
                     if (fileLine.DigestType1.equals(digestType)) {
                         if (fileLine.DigestHEX1.equals(file.CalculatedDigestHEX))
                             file.Status = "OK";
@@ -97,8 +108,7 @@ public class DigestCalculator {
 
                     // digest 2
                     else if (fileLine.DigestType2.equals(digestType)) {
-                        if (fileLine.DigestHEX2
-                                .equals(file.CalculatedDigestHEX))
+                        if (fileLine.DigestHEX2.equals(file.CalculatedDigestHEX))
                             file.Status = "OK";
                         else
                             file.Status = "NOT OK";
@@ -154,6 +164,7 @@ public class DigestCalculator {
             newLine.Name = filename;
             newLine.DigestType1 = digestType;
             newLine.DigestHEX1 = digestHEX;
+            System.out.println(">>>>>>>> adding new line: "+newLine.DigestHEX1);
             digestsFileList.add(newLine);
         }
     }
@@ -179,6 +190,7 @@ public class DigestCalculator {
     private void calculateDigests() throws Exception{
     	for (Archive file : files) {
     		 MessageDigest digest = MessageDigest.getInstance(digestType);
+    		 digest.reset();
     		 FileInputStream inputStream = new FileInputStream(digestListFilePath);
     		 byte[] bytes = new byte[2048];
 			 int numBytes;
@@ -188,22 +200,21 @@ public class DigestCalculator {
     		 }
 			 file.CalculatedDigest = digest.digest();
 			 file.CalculatedDigestHEX = ByteToString(file.CalculatedDigest);
+			 System.out.println(">>>>>> calculated: "+file.CalculatedDigestHEX);
 			 inputStream.close();
     	}
     }
 
     public void GetArchives(String[] args) {
-        files = new ArrayList<Archive>();
-
-        for (int i = 2; i < args.length - 1; i++) {
+        for (int i = 2; i < args.length; i++) {
             Archive file = new Archive();
             file.Path = args[i];
             files.add(file);
         }
 
         for (Archive file : files) {
-            System.out.println(file.Path);
             File f = new File(file.Path);
+            file.FileName = f.getName();
             if (!f.exists() || f.isDirectory()) {
                 System.err.println("The file \"" + file.Path + "\" does not exist.");
                 System.exit(1);
@@ -215,13 +226,6 @@ public class DigestCalculator {
             System.err.println("TheDigest List file \"" + digestListFilePath + "\" does not exist.");
             System.exit(1);
         }
-        for (Archive file : files) {
-            file.FileName = file.Path.substring(
-                    file.Path.lastIndexOf("\\") + 1,
-                    file.Path.length());
-            System.out.println(file.FileName);
-        }
-
     }
     
     public static String ByteToString(byte[] info) {

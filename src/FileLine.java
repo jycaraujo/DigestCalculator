@@ -8,11 +8,17 @@ public class FileLine {
 
     public FileLine()
     {
+    	lineNumber = -1;
+    	Name = "";
+    	DigestType1 = "";
+    	DigestType2 = "";
+    	DigestHEX1 = "";
+    	DigestHEX2 = "";
     }
     
     public String toString(){
         String text = Name + " " + DigestType1 + " " + DigestHEX1;
-        if (DigestType2 != null) {
+        if (!DigestType2.equals("")) {
             text = text +  " " + DigestType2 + " " + DigestHEX2;
         }
         return text;
