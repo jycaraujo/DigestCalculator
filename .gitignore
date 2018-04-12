@@ -26,3 +26,8 @@ bin/*
 .settings/*
 .classpath
 .project
+
+# idea project files
+out/*
+.idea/*
+*.iml
